@@ -1,16 +1,29 @@
---io:4 led,5 config ttl,6 quantity,7 key,8 work
+--io initialize:4 led,5 config ttl,6 work,7 key,8 quantity
 ledPin = 4
+gpio.write(ledPin, gpio.LOW)
+gpio.mode(ledPin, gpio.OUTPUT)
+
 configPin = 5
-quantityPin = 6
+gpio.write(configPin, gpio.LOW)
+
+workPin = 6
+gpio.write(workPin, gpio.LOW)
+gpio.mode(workPin, gpio.INPUT)
+
 keyPin = 7
-workPin = 8
+gpio.write(keyPin, gpio.LOW)
+gpio.mode(keyPin, gpio.INPUT)
+
+quantityPin = 8
+gpio.write(quantityPin, gpio.LOW)
+
 --quantity check
 --0-1024:0-3.3V
 if adc.force_init_mode(adc.INIT_ADC) then
     node.restart()
     return -- don't bother continuing, the restart is scheduled
 end
-tmr.create():alamr(
+tmr.create():alarm(
     1000 * 60 * 60,
     tmr.ALARM_AUTO,
     function()
@@ -26,8 +39,6 @@ tmr.create():alamr(
 --led blink
 --high:light,low:black
 --type:1-short blink,2-long blink,3-blink 3,4-long light
-gpio.mode(ledPin, gpio.OUTPUT)
-gpio.write(ledPin, gpio.LOW)
 function ledBlink(type)
     type = type == nil and 1 or type
     local array = {200 * 1000, 200 * 1000}
@@ -199,7 +210,6 @@ function endWarning()
     get("053", "0", "100")
 end
 
-gpio.mode(workPin, gpio.INPUT)
 gpio.trig(
     workPin,
     "both",
@@ -218,7 +228,6 @@ function keyLongPress()
     get("053", "0", "0")
 end
 
-gpio.mode(keyPin, gpio.INPUT)
 gpio.trig(
     keyPin,
     "up",
@@ -278,12 +287,3 @@ do
         startConfig()
     end
 end
-
--- --test
--- tmr.create():alarm(
---     1000 * 60 * 60,
---     tmr.ALARM_AUTO,
---     function()
---         endWarning(true)
---     end
--- )
