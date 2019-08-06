@@ -19,14 +19,14 @@ configPin = 8
 gpio.mode(configPin, gpio.INT)
 gpio.write(configPin, gpio.LOW)
 
---quantity check
+--quantity check,3min check once
 --0-1024:0-3.3V
 if adc.force_init_mode(adc.INIT_ADC) then
     node.restart()
     return -- don't bother continuing, the restart is scheduled
 end
 tmr.create():alarm(
-    1000,
+    1000 * 60 * 3,
     tmr.ALARM_AUTO,
     function()
         local q = adc.read(0)
