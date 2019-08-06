@@ -1,10 +1,11 @@
---io initialize:4 led,5 config ttl,6 work,7 key,8 quantity
+--io initialize:4 led,5 quantity,6 work,7 key,8 config ttl
 ledPin = 4
-gpio.write(ledPin, gpio.LOW)
 gpio.mode(ledPin, gpio.OUTPUT)
+gpio.write(ledPin, gpio.LOW)
 
-configPin = 5
-gpio.write(configPin, gpio.LOW)
+quantityPin = 5
+gpio.mode(quantityPin, gpio.INT)
+gpio.write(quantityPin, gpio.LOW)
 
 workPin = 6
 gpio.write(workPin, gpio.LOW)
@@ -14,8 +15,9 @@ keyPin = 7
 gpio.write(keyPin, gpio.LOW)
 gpio.mode(keyPin, gpio.INPUT)
 
-quantityPin = 8
-gpio.write(quantityPin, gpio.LOW)
+configPin = 8
+gpio.mode(configPin, gpio.INT)
+gpio.write(configPin, gpio.LOW)
 
 --quantity check
 --0-1024:0-3.3V
@@ -24,14 +26,14 @@ if adc.force_init_mode(adc.INIT_ADC) then
     return -- don't bother continuing, the restart is scheduled
 end
 tmr.create():alarm(
-    1000 * 60 * 60,
+    1000,
     tmr.ALARM_AUTO,
     function()
         local q = adc.read(0)
-        if q > 900 then
+        if q > 864 then
             gpio.write(quantityPin, gpio.LOW)
-        elseif q < 837 then
-            gpio.write(quantityPin, gpio.high)
+        elseif q < 798 then
+            gpio.write(quantityPin, gpio.HIGH)
         end
     end
 )
@@ -82,7 +84,8 @@ end
 
 --http get,sending led blink
 deviceCode = string.upper(string.gsub(wifi.sta.getmac(), ":", ""))
-function get(actionType, warningType, quantity)
+function get(actionType, warningType)
+    local quantity = math.floor(adc.read(0) * 100 / 1024)
     local url =
         string.format(
         "http://www.zhihuiyanglao.com/gateMagnetController.do?gateDeviceRecord&deviceCode=%s&actionType=%s&warningType=%s&quantity=%s",
@@ -94,7 +97,14 @@ function get(actionType, warningType, quantity)
     local tryAgain = 0
     local function localGet(url)
         -- --blink 3 times,2s high
-        gpio.serout(configPin, gpio.HIGH, {1000 * 1000 * 2}, 1, 1)
+        gpio.write(configPin, gpio.HIGH)
+        tmr.create():alarm(
+            2000,
+            tmr.ALARM_SINGLE,
+            function()
+                gpio.write(configPin, gpio.LOW)
+            end
+        )
         ledBlink(3)
         http.get(
             url,
@@ -185,7 +195,7 @@ function startConfig()
             config_running_flag = nil
             gpio.write(configPin, gpio.LOW)
             --wifi config end,send a GET
-            get("053", "0", "50")
+            get("053", "0")
             if config_tmr then
                 local running = config_tmr:state()
                 if running then
@@ -202,12 +212,12 @@ end
 --work
 function warning()
     print("warning...")
-    get("052", "0", "100")
+    get("052", "0")
 end
 
 function endWarning()
     print("warning end")
-    get("053", "0", "100")
+    get("053", "0")
 end
 
 gpio.trig(
@@ -225,7 +235,7 @@ gpio.trig(
 --key press
 function keyLongPress()
     print("key long press")
-    get("053", "0", "0")
+    get("053", "0")
 end
 
 gpio.trig(
