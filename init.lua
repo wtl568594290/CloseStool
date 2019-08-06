@@ -85,7 +85,9 @@ end
 --http get,sending led blink
 deviceCode = string.upper(string.gsub(wifi.sta.getmac(), ":", ""))
 function get(actionType, warningType)
-    local quantity = math.floor(adc.read(0) * 100 / 1024)
+    local q = adc.read(0)
+    local c = q > 798 and q - 798 or 0
+    local quantity = math.floor(c * 100 / (1024 - 798))
     local url =
         string.format(
         "http://www.zhihuiyanglao.com/gateMagnetController.do?gateDeviceRecord&deviceCode=%s&actionType=%s&warningType=%s&quantity=%s",
