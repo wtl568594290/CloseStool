@@ -234,7 +234,6 @@ function startConfig()
         end
     )
     ledBlink()
-    config_tmr:start()
 end
 
 --work
