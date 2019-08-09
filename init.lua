@@ -25,19 +25,24 @@ if adc.force_init_mode(adc.INIT_ADC) then
     node.restart()
     return -- don't bother continuing, the restart is scheduled
 end
-tmr.create():alarm(
-    1000 * 60 * 3,
-    tmr.ALARM_AUTO,
-    function()
-        local q = adc.read(0)
-        if q > 864 then
-            gpio.write(quantityPin, gpio.LOW)
-        elseif q < 798 then
-            gpio.write(quantityPin, gpio.HIGH)
-        end
+function getQuantity()
+    local q = adc.read(0)
+    local gQ = q
+    if q >= 977 then
+        gQ = 100
+    elseif q < 977 and q >= 798 then
+        gQ = math.floor((q - 798) / (977 - 798) * 90 + 10)
+    elseif q < 798 then
+        gQ = math.floor(q / 798 * 10)
     end
-)
-
+    if gQ >= 27 then
+        gpio.write(quantityPin, gpio.LOW)
+    elseif gQ <= 10 then
+        gpio.write(quantityPin, gpio.HIGH)
+    end
+    return gQ
+end
+quantity = getQuantity()
 --led blink
 --high:light,low:black
 --type:1-short blink,2-long blink,3-blink 3,4-long light
@@ -85,9 +90,9 @@ end
 --http get,sending led blink
 deviceCode = string.upper(string.gsub(wifi.sta.getmac(), ":", ""))
 function get(actionType, warningType)
-    local q = adc.read(0)
-    local c = q > 798 and q - 798 or 0
-    local quantity = math.floor(c * 100 / (1024 - 798))
+    if actionType == "053" then
+        quantity = getQuantity()
+    end
     local url =
         string.format(
         "http://www.zhihuiyanglao.com/gateMagnetController.do?gateDeviceRecord&deviceCode=%s&actionType=%s&warningType=%s&quantity=%s",
@@ -140,12 +145,34 @@ function get(actionType, warningType)
         )
     end
     localGet(url)
+    --8h last get again
+    lastActionType = actionType
+    lastWarningType = warningType
+    if get8AgainTmr then
+        get8AgainTmr:unregister()
+        get8AgainTmr = nil
+    end
+    againCount = 0
+    get8AgainTmr = tmr.create()
+    get8AgainTmr:alarm(
+        1000 * 60 * 60,
+        tmr.ALARM_AUTO,
+        function(timer)
+            againCount = againCount + 1
+            if againCount == 8 then
+                if lastActionType and lastWarningType then
+                    get(lastActionType, lastWarningType)
+                end
+                againCount = 0
+            end
+        end
+    )
 end
 
 --wifi init
 --config_running_flag: wifi config is running ,disconnected register don't blink
 wifi.setmode(wifi.STATION)
-wifi.sta.sleeptype(wifi.MODEM_SLEEP)
+wifi.sta.sleeptype(wifi.LIGHT_SLEEP)
 
 wifi.eventmon.register(
     wifi.eventmon.STA_GOT_IP,
@@ -169,26 +196,29 @@ wifi.eventmon.register(
 )
 
 --wifi configuration
-config_tmr = tmr.create()
-config_tmr:register(
-    60 * 1000,
-    tmr.ALARM_SINGLE,
-    function()
-        print("after 60s....")
-        if config_running_flag then
-            ledBlink(4)
-            config_running_flag = nil
-            gpio.write(configPin, gpio.LOW)
-            enduser_setup.stop()
-            if last_ssid ~= nil then
-                wifi.sta.config({ssid = last_ssid, pwd = last_pwd})
-            end
-        end
-    end
-)
 function startConfig()
     config_running_flag = true
     gpio.write(configPin, gpio.HIGH)
+    --save last config
+    last_ssid, last_pwd = wifi.sta.getconfig()
+    --60s last reload ssid and pwd
+    configTmr = tmr.create()
+    configTmr:alarm(
+        60 * 1000,
+        tmr.ALARM_SINGLE,
+        function()
+            print("after 60s....")
+            if configRunningFlag then
+                ledBlink(4)
+                configRunningFlag = nil
+                enduser_setup.stop()
+                if last_ssid ~= nil then
+                    wifi.sta.config({ssid = last_ssid, pwd = last_pwd})
+                end
+            end
+        end
+    )
+    --startconfig
     wifi.sta.clearconfig()
     wifi.sta.autoconnect(1)
     enduser_setup.start(
@@ -198,13 +228,9 @@ function startConfig()
             gpio.write(configPin, gpio.LOW)
             --wifi config end,send a GET
             get("053", "0")
-            if config_tmr then
-                local running = config_tmr:state()
-                if running then
-                    print("remove 60s tmr")
-                    config_tmr:stop()
-                end
-            end
+            print("remove 60s tmr")
+            configTmr:unregister()
+            configTmr = nil
         end
     )
     ledBlink()
