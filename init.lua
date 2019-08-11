@@ -251,11 +251,6 @@ do
             1000 * 2,
             tmr.ALARM_AUTO,
             function(timer)
-                if boot_count >= 5 then
-                    boot_count = nil
-                    timer:unregister()
-                    return
-                end
                 if wifi.sta.status() == wifi.STA_GOTIP then
                     timer:unregister()
                     http.get(
@@ -269,6 +264,11 @@ do
                     )
                 else
                     boot_count = boot_count + 1
+                    if boot_count >= 5 then
+                        boot_count = nil
+                        timer:unregister()
+                        startConfig()
+                    end
                 end
             end
         )
