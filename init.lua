@@ -1,8 +1,4 @@
---io initialize:4 led,5 quantity,6 work,7 key,8 config ttl
-ledPin = 4
-gpio.mode(ledPin, gpio.OUTPUT)
-gpio.write(ledPin, gpio.LOW)
-
+--io initialize:,5 quantity,6 work,7 key,8 config ttl
 quantityPin = 5
 gpio.mode(quantityPin, gpio.INT)
 gpio.write(quantityPin, gpio.LOW)
@@ -43,35 +39,6 @@ function getQuantity()
     return gQ
 end
 quantity = getQuantity()
---led blink
---high:light,low:black
---type:1-short blink,2-long blink,3-blink 3,4-long light
-function ledBlink(type)
-    type = type == nil and 1 or type
-    local array = {200 * 1000, 200 * 1000}
-    if type == 2 then
-        array = {1000 * 1000, 500 * 1000}
-    end
-    local cycle = 100
-    if type == 3 then
-        cycle = 3
-    elseif type == 4 then
-        cycle = 1
-    end
-    gpio.serout(
-        ledPin,
-        gpio.HIGH,
-        array,
-        cycle,
-        function()
-            if type == 1 then
-                ledBlink(1)
-            elseif type == 2 then
-                ledBlink(2)
-            end
-        end
-    )
-end
 
 --json decode
 function decode(str)
@@ -104,16 +71,8 @@ function get(warningType)
     )
     local tryAgain = 0
     local function localGet(url)
-        -- --blink 3 times,2s high
-        gpio.write(configPin, gpio.HIGH)
-        tmr.create():alarm(
-            1000 * 2,
-            tmr.ALARM_SINGLE,
-            function()
-                gpio.write(configPin, gpio.LOW)
-            end
-        )
-        ledBlink(3)
+        --2s high
+        gpio.serout(configPin, gpio.HIGH, {1000 * 1000 * 2, 0}, 1, 1)
         http.get(
             url,
             nil,
@@ -177,7 +136,6 @@ wifi.sta.sleeptype(wifi.LIGHT_SLEEP)
 wifi.eventmon.register(
     wifi.eventmon.STA_GOT_IP,
     function(T)
-        ledBlink(4)
         get("0")
         print("wifi is connected,ip is " .. T.IP)
     end
@@ -187,10 +145,6 @@ wifi.eventmon.register(
     wifi.eventmon.STA_DISCONNECTED,
     function(T)
         print("\n\tSTA - DISCONNECTED" .. "\n\t\reason: " .. T.reason)
-        --Set disconnected_flag to prevent repeated calls
-        if not config_running_flag then
-            ledBlink(2)
-        end
     end
 )
 
@@ -208,7 +162,6 @@ function startConfig()
         function()
             print("after 60s....")
             if configRunningFlag then
-                ledBlink(4)
                 configRunningFlag = nil
                 enduser_setup.stop()
                 if last_ssid ~= nil then
@@ -231,7 +184,6 @@ function startConfig()
             configTmr = nil
         end
     )
-    ledBlink()
 end
 
 --work
