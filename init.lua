@@ -1,14 +1,12 @@
 --io initialize:5 work,6 quantity,7 key,8 config ttl
 workPin = 5
-gpio.write(workPin, gpio.LOW)
-gpio.mode(workPin, gpio.INT)
+gpio.mode(workPin, gpio.INPUT)
 
 quantityPin = 6
-gpio.write(quantityPin, gpio.LOW)
 gpio.mode(quantityPin, gpio.INT)
+gpio.write(quantityPin, gpio.LOW)
 
 keyPin = 7
-gpio.write(keyPin, gpio.LOW)
 gpio.mode(keyPin, gpio.INPUT)
 
 configPin = 8
