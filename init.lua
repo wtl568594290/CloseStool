@@ -231,7 +231,6 @@ do
     )
     local function workChangecb(level)
         gpio.trig(workPin)
-        local checkCount = 0
         local workLevelChangeCount = 0
         local workLevelNoChangeCount = 0
         local workLevel = level
@@ -240,7 +239,6 @@ do
             100,
             tmr.ALARM_AUTO,
             function(timer)
-                checkCount = checkCount + 1
                 local checkLevel = gpio.read(workPin)
                 if workLevel ~= checkLevel then
                     workLevel = checkLevel
@@ -249,7 +247,7 @@ do
                 else
                     workLevelNoChangeCount = workLevelNoChangeCount + 1
                 end
-                if isFirst600msFlag and checkCount < 7 and workLevelChangeCount == 3 then
+                if isFirst600msFlag and workLevelChangeCount == 3 then
                     bootConfig()
                 end
                 if workLevelNoChangeCount > 3 then
