@@ -1,5 +1,7 @@
 --io initialize:5 work,6 quantity,7 key,8 config ttl
 workPin = 5
+gpio.write(workPin, gpio.LOW)
+gpio.mode(workPin, gpio.INT)
 gpio.mode(workPin, gpio.INPUT)
 
 quantityPin = 6
@@ -7,6 +9,8 @@ gpio.mode(quantityPin, gpio.INT)
 gpio.write(quantityPin, gpio.LOW)
 
 keyPin = 7
+gpio.write(keyPin, gpio.LOW)
+gpio.mode(keyPin, gpio.INT)
 gpio.mode(keyPin, gpio.INPUT)
 
 configPin = 8
@@ -19,9 +23,9 @@ if adc.force_init_mode(adc.INIT_ADC) then
     node.restart()
     return -- don't bother continuing, the restart is scheduled
 end
-function getQuantity()
-    local q = adc.read(0)
-    local gQ = q
+function getQuantity(q)
+    -- local q = adc.read(0)
+    local gQ = 0
     if q >= 977 then
         gQ = 100
     elseif q < 977 and q >= 798 then
@@ -36,7 +40,6 @@ function getQuantity()
     end
     return gQ
 end
-quantity = getQuantity()
 
 --json decode
 function decode(str)
@@ -54,12 +57,13 @@ end
 
 --http get,sending led blink
 deviceCode = string.upper(string.gsub(wifi.sta.getmac(), ":", ""))
-actionStart, actionStop, warningStart, warningStop = "052", "053", "1", "0"
-actionType = actionStop
-warningType = warningStop
+actionStart, actionStop, actionType, warningStart, warningStop = "052", "053", "053", "1", "0"
 function get(warningType)
+    local localQuantity = 0
     if actionType == actionStart then
-        quantity = getQuantity()
+        localQuantity = getQuantity(adc.read(0) + 70)
+    else
+        localQuantity = getQuantity(adc.read(0))
     end
     local url =
         string.format(
@@ -67,7 +71,7 @@ function get(warningType)
         deviceCode,
         actionType,
         warningType,
-        quantity
+        localQuantity
     )
     local tryAgain = 0
     local function localGet(url)
@@ -109,7 +113,7 @@ end
 
 --wifi init
 wifi.setmode(wifi.STATION)
-wifi.sta.sleeptype(wifi.LIGHT_SLEEP)
+-- wifi.sta.sleeptype(wifi.LIGHT_SLEEP)
 
 wifi.eventmon.register(
     wifi.eventmon.STA_GOT_IP,
@@ -125,64 +129,154 @@ wifi.eventmon.register(
     end
 )
 
---wifi configuration
-function startConfig()
-    gpio.write(configPin, gpio.HIGH)
-    --60s last reload ssid and pwd
-    configTmr = tmr.create()
-    configTmr:alarm(
-        60 * 1000,
+do
+    --wifi configuration
+    local function startConfig()
+        if not configRunningFlag then
+            gpio.write(configPin, gpio.HIGH)
+            lastSsid, lastPwd = wifi.sta.getconfig()
+            configRunningFlag = true
+            local removeCount = 0
+            tmr.create():alarm(
+                1000 * 1,
+                tmr.ALARM_AUTO,
+                function(timer)
+                    if configSuccessFlag then
+                        print("config success")
+                        configSuccessFlag = nil
+                        configRunningFlag = nil
+                        gpio.write(configPin, gpio.LOW)
+                        timer:unregister()
+                    else
+                        removeCount = removeCount + 1
+                        if removeCount >= 20 then
+                            print("after 60s ...")
+                            configRunningFlag = nil
+                            gpio.write(configPin, gpio.LOW)
+                            wifi.stopsmart()
+                            if lastSsid ~= nil and lastSsid ~= "" then
+                                wifi.sta.config({ssid = lastSsid, pwd = lastPwd})
+                            end
+                            timer:unregister()
+                        end
+                    end
+                end
+            )
+            --startconfig
+            wifi.startsmart(
+                0,
+                function(ssid, pwd)
+                    print("config success,info:" .. ssid .. pwd)
+                    configSuccessFlag = true
+                end
+            )
+        end
+    end
+
+    --boot config wifi
+    local function bootConfig()
+        local ssid = wifi.sta.getconfig()
+        if ssid ~= nil and ssid ~= "" then
+            local boot_count = 0
+            tmr.create():alarm(
+                100,
+                tmr.ALARM_AUTO,
+                function(timer)
+                    if wifi.sta.status() == wifi.STA_GOTIP then
+                        timer:unregister()
+                        http.get(
+                            "http://www.zhihuiyanglao.com/gateMagnetController.do?gateDeviceRecord&deviceCode=1&actionType=0&warningType=0&quantity=0",
+                            nil,
+                            function(code)
+                                if code < 0 then
+                                    startConfig()
+                                end
+                            end
+                        )
+                    else
+                        boot_count = boot_count + 1
+                        if boot_count >= 50 then
+                            boot_count = nil
+                            timer:unregister()
+                            startConfig()
+                        end
+                    end
+                end
+            )
+        else
+            startConfig()
+        end
+    end
+    --work
+    local function workStart()
+        print("work...")
+        actionType = "052"
+        get(warningStop)
+    end
+
+    local function workStop()
+        print("work end")
+        actionType = "053"
+        get(warningStop)
+    end
+
+    --boot 600ms flag
+    local isFirst600msFlag = true
+    tmr:create():alarm(
+        600,
         tmr.ALARM_SINGLE,
         function()
-            print("after 60s....")
-            wifi.stopsmart()
+            isFirst600msFlag = false
         end
     )
-    --startconfig
-    wifi.stopsmart()
-    wifi.startsmart(
-        0,
-        function(ssid, pwd)
-            print("config success,info:" .. ssid .. pwd)
-            gpio.write(configPin, gpio.LOW)
-            print("remove 60s")
-            configTmr:unregister()
-            configTmr = nil
-        end
-    )
-end
-
---work
-function workStart()
-    print("work...")
-    actionType = "052"
-    get(warningStop)
-end
-
-function workStop()
-    print("work end")
-    actionType = "053"
-    get(warningStop)
-end
-do
     local function workChangecb(level)
-        gpio.trig(workPin, level == gpio.HIGH and "down" or "high")
-        if level == gpio.HIGH then
-            workStart()
-        else
-            workStop()
-        end
+        gpio.trig(workPin)
+        local checkCount = 0
+        local workLevelChangeCount = 0
+        local workLevelNoChangeCount = 0
+        local workLevel = level
+        local workFlag = false
+        tmr:create():alarm(
+            100,
+            tmr.ALARM_AUTO,
+            function(timer)
+                checkCount = checkCount + 1
+                local checkLevel = gpio.read(workPin)
+                if workLevel ~= checkLevel then
+                    workLevel = checkLevel
+                    workLevelChangeCount = workLevelChangeCount + 1
+                    workLevelNoChangeCount = 0
+                else
+                    workLevelNoChangeCount = workLevelNoChangeCount + 1
+                end
+                if isFirst600msFlag and checkCount < 7 and workLevelChangeCount == 3 then
+                    bootConfig()
+                end
+                if workLevelNoChangeCount > 3 then
+                    if checkLevel == gpio.HIGH then
+                        if not workFlag then
+                            workFlag = true
+                            workStart()
+                        end
+                    else
+                        if workFlag then
+                            workStop()
+                        end
+                        timer:unregister()
+                        gpio.trig(workPin, "high", workChangecb)
+                    end
+                end
+            end
+        )
     end
     gpio.trig(workPin, "high", workChangecb)
 end
-
 --key press
-function keyLongPress()
-    print("key long press")
-    get(warningStart)
-end
-
 do
+    local function keyLongPress()
+        print("key long press")
+        get(warningStart)
+    end
     local function keyChangecb(level)
         gpio.trig(keyPin, level == gpio.HIGH and "down" or "high")
         if level == gpio.HIGH then
@@ -204,39 +298,4 @@ do
         end
     end
     gpio.trig(keyPin, "high", keyChangecb)
-end
-
---Boot configuration
-do
-    local ssid = wifi.sta.getconfig()
-    if ssid ~= nil and ssid ~= "" then
-        local boot_count = 0
-        tmr.create():alarm(
-            100,
-            tmr.ALARM_AUTO,
-            function(timer)
-                if wifi.sta.status() == wifi.STA_GOTIP then
-                    timer:unregister()
-                    http.get(
-                        "http://www.zhihuiyanglao.com/gateMagnetController.do?gateDeviceRecord&deviceCode=1&actionType=0&warningType=0&quantity=0",
-                        nil,
-                        function(code)
-                            if code < 0 then
-                                startConfig()
-                            end
-                        end
-                    )
-                else
-                    boot_count = boot_count + 1
-                    if boot_count >= 50 then
-                        boot_count = nil
-                        timer:unregister()
-                        startConfig()
-                    end
-                end
-            end
-        )
-    else
-        startConfig()
-    end
 end
