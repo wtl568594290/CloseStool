@@ -258,7 +258,7 @@ do
         get(warningStart)
     end
     local function keyChangecb(level)
-        gpio.trig(keyPin, level == gpio.HIGH and "down" or "high")
+        gpio.trig(keyPin)
         if level == gpio.HIGH then
             keyPressCount = 0
             tmr:create():alarm(
@@ -273,6 +273,7 @@ do
                     else
                         timer:unregister()
                         keyPressCount = 0
+                        gpio.trig(keyPin, "high", keyChangecb)
                     end
                 end
             )
