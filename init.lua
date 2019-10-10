@@ -111,7 +111,7 @@ end
 
 --wifi init
 wifi.setmode(wifi.STATION)
--- wifi.sta.sleeptype(wifi.LIGHT_SLEEP)
+wifi.sta.sleeptype(wifi.LIGHT_SLEEP)
 
 wifi.eventmon.register(
     wifi.eventmon.STA_GOT_IP,
