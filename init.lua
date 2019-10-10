@@ -138,7 +138,13 @@ do
             function(ssid, pwd)
                 print("config success,info:" .. ssid .. pwd)
                 configSuccessFlag = true
-                gpio.write(configPin.gpio.LOW)
+                tmr:create():alarm(
+                    5000,
+                    tmr.ALARM_SINGLE,
+                    function()
+                        gpio.write(configPin.gpio.LOW)
+                    end
+                )
             end
         )
         tmr.create():alarm(
@@ -147,11 +153,11 @@ do
             function()
                 if not configSuccessFlag then
                     configSuccessFlag = nil
-                    gpio.write(configPin, gpio.LOW)
                     wifi.stopsmart()
                     if lastSsid ~= nil and lastSsid ~= "" then
                         wifi.sta.config({ssid = lastSsid, pwd = lastPwd})
                     end
+                    gpio.write(configPin, gpio.LOW)
                 end
             end
         )
@@ -225,7 +231,7 @@ do
                 else
                     workLevelNoChangeCount = workLevelNoChangeCount + 1
                 end
-                if isFirst600msFlag and workLevelChangeCount == 3 then
+                if isFirst600msFlag and workLevelChangeCount > 2 then
                     isFirst600msFlag = nil
                     bootConfig()
                 end
