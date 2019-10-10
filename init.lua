@@ -111,6 +111,7 @@ end
 
 --wifi init
 wifi.setmode(wifi.STATION)
+wifi.sta.autoconnect(1)
 wifi.sta.sleeptype(wifi.LIGHT_SLEEP)
 
 wifi.eventmon.register(
@@ -130,6 +131,7 @@ wifi.eventmon.register(
 do
     --wifi configuration
     local function startConfig()
+        print("start config")
         gpio.write(configPin, gpio.HIGH)
         lastSsid, lastPwd = wifi.sta.getconfig()
         --startconfig
@@ -142,7 +144,7 @@ do
                     5000,
                     tmr.ALARM_SINGLE,
                     function()
-                        gpio.write(configPin.gpio.LOW)
+                        gpio.write(configPin, gpio.LOW)
                     end
                 )
             end
@@ -178,9 +180,7 @@ do
                             timer:unregister()
                             bootCount = 0
                             --password error or ap error
-                            if wifi.sta.status() == wifi.STA_WRONGPWD or wifi.sta.status() == wifi.STA_APNOTFOUND then
-                                startConfig()
-                            end
+                            startConfig()
                         end
                     else
                         timer:unregister()
@@ -231,7 +231,7 @@ do
                 else
                     workLevelNoChangeCount = workLevelNoChangeCount + 1
                 end
-                if isFirst600msFlag and workLevelChangeCount > 2 then
+                if isFirst600msFlag and workLevelChangeCount > 3 then
                     isFirst600msFlag = nil
                     bootConfig()
                 end
