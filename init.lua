@@ -199,7 +199,7 @@ do
     end
 
     --boot 600ms flag
-    local isFirst600msFlag = true
+    isFirst600msFlag = true
     tmr:create():alarm(
         600,
         tmr.ALARM_SINGLE,
