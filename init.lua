@@ -266,17 +266,17 @@ do
         print("key long press")
         get(warningStart)
     end
-    function keyChangecb(level)
+    local function keyChangecb(level)
         gpio.trig(keyPin, level == gpio.HIGH and "down" or "high")
         if level == gpio.HIGH then
             keyPressCount = 0
             tmr:create():alarm(
-                20,
+                100,
                 tmr.ALARM_AUTO,
                 function(timer)
                     if gpio.read(keyPin) == gpio.HIGH then
                         keyPressCount = keyPressCount + 1
-                        if keyPressCount == 125 then
+                        if keyPressCount == 25 then
                             keyLongPress()
                         end
                     else
