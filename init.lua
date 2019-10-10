@@ -166,18 +166,7 @@ do
                 100,
                 tmr.ALARM_AUTO,
                 function(timer)
-                    if wifi.sta.status() == wifi.STA_GOTIP then
-                        timer:unregister()
-                        http.get(
-                            "http://www.zhihuiyanglao.com/gateMagnetController.do?gateDeviceRecord&deviceCode=1&actionType=0&warningType=0&quantity=0",
-                            nil,
-                            function(code)
-                                if code < 0 then
-                                    startConfig()
-                                end
-                            end
-                        )
-                    else
+                    if wifi.sta.status() ~= wifi.STA_GOTIP then
                         bootCount = bootCount + 1
                         if bootCount >= 50 then
                             timer:unregister()
@@ -187,6 +176,8 @@ do
                                 startConfig()
                             end
                         end
+                    else
+                        timer:unregister()
                     end
                 end
             )
