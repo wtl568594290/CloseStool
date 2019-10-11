@@ -138,7 +138,6 @@ do
     --wifi configuration
     local function startConfig()
         print("start config")
-        setHigh()
         lastSsid, lastPwd = wifi.sta.getconfig()
         --startconfig
         wifi.startsmart(
@@ -150,7 +149,7 @@ do
                     5000,
                     tmr.ALARM_SINGLE,
                     function()
-                        setLow()
+                        gpio.write(configPin, gpio.LOW)
                     end
                 )
             end
@@ -169,7 +168,7 @@ do
                         2000,
                         tmr.ALARM_SINGLE,
                         function()
-                            setLow()
+                            gpio.write(configPin, gpio.LOW)
                         end
                     )
                 end
@@ -179,7 +178,7 @@ do
 
     --boot config wifi
     local function bootConfig()
-        setHigh()
+        gpio.write(configPin, gpio.HIGH)
         local ssid = wifi.sta.getconfig()
         if ssid ~= nil and ssid ~= "" then
             bootCount = 0
@@ -197,7 +196,7 @@ do
                         end
                     else
                         timer:unregister()
-                        setLow()
+                        gpio.write(configPin, gpio.LOW)
                     end
                 end
             )
