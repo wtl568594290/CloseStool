@@ -129,10 +129,16 @@ wifi.eventmon.register(
 )
 
 do
+    local function setHigh()
+        gpio.write(configPin, gpio.HIGH)
+    end
+    local function setLow()
+        gpio.write(configPin, gpio.LOW)
+    end
     --wifi configuration
     local function startConfig()
         print("start config")
-        gpio.write(configPin, gpio.HIGH)
+        setHigh()
         lastSsid, lastPwd = wifi.sta.getconfig()
         --startconfig
         wifi.startsmart(
@@ -144,7 +150,7 @@ do
                     5000,
                     tmr.ALARM_SINGLE,
                     function()
-                        gpio.write(configPin, gpio.LOW)
+                        setLow()
                     end
                 )
             end
@@ -159,7 +165,13 @@ do
                     if lastSsid ~= nil and lastSsid ~= "" then
                         wifi.sta.config({ssid = lastSsid, pwd = lastPwd})
                     end
-                    gpio.write(configPin, gpio.LOW)
+                    tmr:create():alarm(
+                        2000,
+                        tmr.ALARM_SINGLE,
+                        function()
+                            setLow()
+                        end
+                    )
                 end
             end
         )
@@ -167,6 +179,7 @@ do
 
     --boot config wifi
     local function bootConfig()
+        setHigh()
         local ssid = wifi.sta.getconfig()
         if ssid ~= nil and ssid ~= "" then
             bootCount = 0
@@ -179,13 +192,12 @@ do
                         if bootCount > 100 then
                             timer:unregister()
                             bootCount = 0
-                            --password error or ap error
-                            if wifi.sta.status() == wifi.STA_APNOTFOUND or wifi.sta.status() == wifi.STA_WRONGPWD then
-                                startConfig()
-                            end
+                            --10s can't connect wifi then config
+                            startConfig()
                         end
                     else
                         timer:unregister()
+                        setLow()
                     end
                 end
             )
