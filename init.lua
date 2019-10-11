@@ -176,11 +176,13 @@ do
                 function(timer)
                     if wifi.sta.status() ~= wifi.STA_GOTIP then
                         bootCount = bootCount + 1
-                        if bootCount >= 50 then
+                        if bootCount > 100 then
                             timer:unregister()
                             bootCount = 0
                             --password error or ap error
-                            startConfig()
+                            if wifi.sta.status() == wifi.STA_APNOTFOUND or wifi.sta.status() == wifi.STA_WRONGPWD then
+                                startConfig()
+                            end
                         end
                     else
                         timer:unregister()
