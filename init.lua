@@ -24,12 +24,11 @@ function getQuantity()
     local gQ = 0
     if q >= 960 then
         gQ = 100
-    elseif q < 960 and q >= 743 then
-        gQ = math.floor((960 - q) / 2.17)
+    elseif q < 960 and q >= 768 then
+        gQ = math.floor((960 - q) / 1.92)
     else
         gQ = 0
     end
-
     return gQ
 end
 quantity = getQuantity()
@@ -137,11 +136,37 @@ do
             function(ssid, pwd)
                 print("config success,info:" .. ssid .. pwd)
                 configSuccessFlag = true
+                connectCount = 0
                 tmr:create():alarm(
-                    5000,
-                    tmr.ALARM_SINGLE,
-                    function()
-                        gpio.write(configPin, gpio.LOW)
+                    1000,
+                    tmr.ALARM_AUTO,
+                    function(timer)
+                        connectCount = connectCount + 1
+                        if wifi.sta.status() == wifi.STA_GOTIP then
+                            timer:unregister()
+                            connectCount = 0
+                            quantity = getQuantity()
+                            http.get(
+                                string.format(
+                                    "http://www.zhihuiyanglao.com/gateMagnetController.do?gateDeviceRecord&deviceCode=%s&actionType=%s&warningType=%s&quantity=%s",
+                                    deviceCode,
+                                    actionType,
+                                    warningType,
+                                    quantity
+                                ),
+                                nil,
+                                function(code)
+                                    gpio.write(configPin,gpio.LOW)
+                                end
+                            )
+                        else
+                            connectCount = connectCount + 1
+                        end
+                        if connectCount > 10 then
+                            timer:unregister()
+                            connectCount = 0
+                            gpio.write(configPin, gpio.LOW)
+                        end
                     end
                 )
             end
