@@ -4,10 +4,6 @@ gpio.write(workPin, gpio.LOW)
 gpio.mode(workPin, gpio.INT)
 gpio.mode(workPin, gpio.INPUT)
 
-quantityPin = 6
-gpio.mode(quantityPin, gpio.INT)
-gpio.write(quantityPin, gpio.LOW)
-
 keyPin = 7
 gpio.write(keyPin, gpio.LOW)
 gpio.mode(keyPin, gpio.INT)
@@ -26,18 +22,14 @@ end
 function getQuantity()
     local q = adc.read(0)
     local gQ = 0
-    if q >= 977 then
+    if q >= 960 then
         gQ = 100
-    elseif q < 977 and q >= 798 then
-        gQ = math.floor((q - 798) / (977 - 798) * 90 + 10)
-    elseif q < 798 then
-        gQ = math.floor(q / 798 * 10)
+    elseif q < 960 and q >= 743 then
+        gQ = math.floor((960 - q) / 2.17)
+    else
+        gQ = 0
     end
-    if gQ >= 27 then
-        gpio.write(quantityPin, gpio.LOW)
-    elseif gQ <= 10 then
-        gpio.write(quantityPin, gpio.HIGH)
-    end
+
     return gQ
 end
 quantity = getQuantity()
