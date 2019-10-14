@@ -25,7 +25,7 @@ function getQuantity()
     if q >= 960 then
         gQ = 100
     elseif q < 960 and q >= 768 then
-        gQ = math.floor((960 - q) / 1.92)
+        gQ = math.floor((q - 768) / 1.92)
     else
         gQ = 0
     end
@@ -156,7 +156,7 @@ do
                                 ),
                                 nil,
                                 function(code)
-                                    gpio.write(configPin,gpio.LOW)
+                                    gpio.write(configPin, gpio.LOW)
                                 end
                             )
                         else
