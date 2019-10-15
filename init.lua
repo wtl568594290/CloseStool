@@ -4,6 +4,8 @@ gpio.write(workPin, gpio.LOW)
 gpio.mode(workPin, gpio.INT)
 gpio.mode(workPin, gpio.INPUT)
 
+gpio.mode(6, gpio.INPUT)
+
 keyPin = 7
 gpio.write(keyPin, gpio.LOW)
 gpio.mode(keyPin, gpio.INT)
