@@ -210,7 +210,7 @@ function checkKey(level)
         function(timer)
             if gpio.read(pinKey_G) == gpio.HIGH then
                 keyCount_G = keyCount_G + 1
-                if keyCount_G >= 25 then
+                if keyCount_G == 25 then
                     insertURL(warningStart_G)
                 end
             else
