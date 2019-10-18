@@ -1,3 +1,6 @@
+--welcome
+print('welcome...')
+--------------
 -- io init
 -- 5:work signal,receive
 -- 7:one key warning,receive
