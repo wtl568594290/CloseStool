@@ -108,7 +108,7 @@ end
 --wifi init
 wifi.setmode(wifi.STATION)
 wifi.sta.autoconnect(1)
--- wifi.sta.sleeptype(wifi.LIGHT_SLEEP)
+wifi.sta.sleeptype(wifi.LIGHT_SLEEP)
 
 --config net
 function configNet()
