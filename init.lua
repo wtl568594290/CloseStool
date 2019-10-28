@@ -1,6 +1,3 @@
---welcome
-print('welcome...')
---------------
 -- io init
 -- 5:work signal,receive
 -- 7:one key warning,receive
@@ -225,3 +222,6 @@ function checkKey(level)
     )
 end
 gpio.trig(pinKey_G, "high", checkKey)
+--welcome
+print('welcome...matong')
+--------------
