@@ -223,5 +223,5 @@ function checkKey(level)
 end
 gpio.trig(pinKey_G, "high", checkKey)
 --welcome
-print('welcome...matong')
+print('welcome...matong by power')
 --------------
