@@ -227,6 +227,7 @@ sleepCfg.wake_pin = pinWake_G
 sleepCfg.int_type = node.INT_HIGH
 sleepCfg.resume_cb = function()
     print("i m wake up")
+    quantity_G = getQuantity()
     urlList_G = {}
     ready_G = true
     tryCount_G = 0
