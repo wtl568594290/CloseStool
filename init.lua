@@ -79,7 +79,6 @@ end
 --config net
 function configNet()
     isConfigRun_G = true
-    setNetHigh()
     print("start config net")
     wifi.startsmart(
         0,
@@ -107,6 +106,7 @@ end
 --boot
 bootCount_G = 0
 function boot()
+    setNetHigh()
     local ssid = wifi.sta.getconfig()
     if ssid == nil or ssid == "" then
         configNet()
@@ -228,5 +228,5 @@ sleepCfg.resume_cb = function()
 end
 getTmr:start()
 --welcome
-VERSION = 1.02
-print("welcome matong,version = " .. VERSION)
+VERSION = 1.03
+print("matong version = " .. VERSION)
