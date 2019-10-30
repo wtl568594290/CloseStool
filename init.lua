@@ -1,6 +1,5 @@
 -- io init
 -- 1:run with not wifi,then never wake device
--- 4:led
 -- 5:work signal,receive
 -- 6:wake pin ,high level wake
 -- 7:one key warning,receive
@@ -50,16 +49,10 @@ end
 quantity_G = getQuantity()
 
 function setNetHigh()
-    if gpio.read(pinNet_G) == gpio.LOW then
-        print("set net high")
-        gpio.write(pinNet_G, gpio.HIGH)
-    end
+    gpio.write(pinNet_G, gpio.HIGH)
 end
 function setNetLow()
-    if gpio.read(pinNet_G) == gpio.HIGH then
-        print("set net low")
-        gpio.write(pinNet_G, gpio.LOW)
-    end
+    gpio.write(pinNet_G, gpio.LOW)
 end
 
 --wifi init
@@ -85,8 +78,9 @@ function insertURL(warning)
 end
 --config net
 function configNet()
-    print("start config net")
     isConfigRun_G = true
+    setNetHigh()
+    print("start config net")
     wifi.startsmart(
         0,
         function()
@@ -113,8 +107,6 @@ end
 --boot
 bootCount_G = 0
 function boot()
-    setNetHigh()
-    print("boot")
     local ssid = wifi.sta.getconfig()
     if ssid == nil or ssid == "" then
         configNet()
@@ -236,4 +228,5 @@ sleepCfg.resume_cb = function()
 end
 getTmr:start()
 --welcome
-print("welcome...matong by light sleep")
+VERSION = 1.02
+print("welcome matong,version = " .. VERSION)
