@@ -10,10 +10,6 @@ gpio.write(pinNeverWake_G, gpio.LOW)
 gpio.mode(pinNeverWake_G, gpio.INT)
 gpio.mode(pinNeverWake_G, gpio.INPUT)
 
-pinLED_G = 4
-gpio.mode(pinLED_G, gpio.OUTPUT)
-gpio.write(pinLED_G, gpio.LOW)
-
 pinWork_G = 5
 gpio.write(pinWork_G, gpio.LOW)
 gpio.mode(pinWork_G, gpio.INT)
@@ -106,7 +102,6 @@ function configNet()
                 -- isConfigRun_G = nil
                 wifi.stopsmart()
                 --never use wifi
-                gpio.write(pinLED_G, gpio.HIGH)
                 setNetLow()
                 sleepCfg.wake_pin = pinNeverWake_G
                 node.sleep(sleepCfg)
@@ -220,7 +215,6 @@ getTmr:register(
                     print("i m go to sleep")
                     gpio.trig(pinWork_G)
                     timer:stop()
-                    gpio.write(pinLED_G, gpio.HIGH)
                     node.sleep(sleepCfg)
                 end
             end
@@ -232,7 +226,6 @@ sleepCfg = {}
 sleepCfg.wake_pin = pinWake_G
 sleepCfg.int_type = node.INT_HIGH
 sleepCfg.resume_cb = function()
-    gpio.write(pinLED_G, gpio.LOW)
     print("i m wake up")
     urlList_G = {}
     ready_G = true
