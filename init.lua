@@ -154,7 +154,7 @@ function checkKey(level)
         function(timer)
             if gpio.read(pinKey_G) == gpio.HIGH then
                 keyCount_G = keyCount_G + 1
-                if keyCount_G == 25 then
+                if keyCount_G == 29 then
                     insertURL(warningStart_G)
                 end
             else
@@ -179,7 +179,12 @@ getTmr:register(
         if #urlList_G > 0 then
             if ready_G then
                 tryCount_G = tryCount_G + 1
-                if tryCount_G <= 5 then
+                tryMax_G = 5
+                if string.find(urlList_G[1], "warningType=1") then
+                    tryMax_G = 10
+                end
+                print(tryMax_G)
+                if tryCount_G <= tryMax_G then
                     if wifi.sta.status() == wifi.STA_GOTIP then
                         ready_G = false
                         http.get(
@@ -228,5 +233,5 @@ sleepCfg.resume_cb = function()
 end
 getTmr:start()
 --welcome
-VERSION = 1.03
+VERSION = 1.04
 print("matong version = " .. VERSION)
